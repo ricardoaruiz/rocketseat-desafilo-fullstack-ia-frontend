@@ -12,7 +12,6 @@ const RootLayout = () => (
     </div>
     <hr />
     <Outlet />
-    
   </>
 )
 
