@@ -1,4 +1,5 @@
 import { CopyIcon } from 'lucide-react'
+import { WebhooksList } from '../webhooks-list'
 import { IconButton } from './icon-button'
 
 export function Sidebar() {
@@ -17,6 +18,8 @@ export function Sidebar() {
         </div>
         <IconButton icon={<CopyIcon className="size-5 text-zinc-400" />} />
       </div>
+
+      <WebhooksList />
     </div>
   )
 }
