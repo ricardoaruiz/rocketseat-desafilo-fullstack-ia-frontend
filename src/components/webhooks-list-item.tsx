@@ -15,14 +15,18 @@ type WebhookListItemProps = {
 }
 
 export function WebhooksListItem({ data }: WebhookListItemProps) {
-  const { method, pathname, createdAt } = data
+  const { id, method, pathname, createdAt } = data
 
   return (
     <div className="group rounded-lg transition-colors duration-150 hover:bg-zinc-700/50">
       <div className="flex items-start gap-3 px-4 py-2.5">
         <Checkbox />
 
-        <Link to="/" className="flex flex-1 min-w-0 items-start gap-3">
+        <Link
+          to="/webhooks/$id"
+          params={{ id }}
+          className="flex flex-1 min-w-0 items-start gap-3"
+        >
           <span className="w-12 shrink-0 font-mono text-xs font-semibold text-zinc-300 text-right">
             {method}
           </span>
