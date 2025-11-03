@@ -1,4 +1,5 @@
-import { Link } from '@tanstack/react-router'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { Link, useRouter } from '@tanstack/react-router'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Trash2Icon } from 'lucide-react'
@@ -16,6 +17,20 @@ type WebhookListItemProps = {
 
 export function WebhooksListItem({ data }: WebhookListItemProps) {
   const { id, method, pathname, createdAt } = data
+  const queryClient = useQueryClient()
+  const router = useRouter()
+
+  const { mutate: deleteWebhook } = useMutation({
+    mutationFn: async (webhookId: string) => {
+      await fetch(`http://localhost:3334/api/webhooks/${webhookId}`, {
+        method: 'DELETE',
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['webhooks'] })
+      router.navigate({ to: '/' })
+    },
+  })
 
   return (
     <div className="group rounded-lg transition-colors duration-150 hover:bg-zinc-700/50">
@@ -46,6 +61,7 @@ export function WebhooksListItem({ data }: WebhookListItemProps) {
         <IconButton
           icon={<Trash2Icon className="size-2.5 text-zinc-400" />}
           className="opacity-0 transition-opacity group-hover:opacity-100"
+          onClick={() => deleteWebhook(id)}
         />
       </div>
     </div>
