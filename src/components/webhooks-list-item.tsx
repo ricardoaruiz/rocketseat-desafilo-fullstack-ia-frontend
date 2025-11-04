@@ -1,3 +1,4 @@
+import type { CheckboxProps } from '@radix-ui/react-checkbox'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useRouter } from '@tanstack/react-router'
 import { formatDistanceToNow } from 'date-fns'
@@ -6,7 +7,10 @@ import { Trash2Icon } from 'lucide-react'
 import { Checkbox } from './ui/checkbox'
 import { IconButton } from './ui/icon-button'
 
-type WebhookListItemProps = {
+type WebhookListItemProps = Pick<
+  CheckboxProps,
+  'onCheckedChange' | 'checked'
+> & {
   data: {
     id: string
     method: string
@@ -15,7 +19,11 @@ type WebhookListItemProps = {
   }
 }
 
-export function WebhooksListItem({ data }: WebhookListItemProps) {
+export function WebhooksListItem({
+  data,
+  checked,
+  onCheckedChange,
+}: WebhookListItemProps) {
   const { id, method, pathname, createdAt } = data
   const queryClient = useQueryClient()
   const router = useRouter()
@@ -35,7 +43,7 @@ export function WebhooksListItem({ data }: WebhookListItemProps) {
   return (
     <div className="group rounded-lg transition-colors duration-150 hover:bg-zinc-700/50">
       <div className="flex items-start gap-3 px-4 py-2.5">
-        <Checkbox />
+        <Checkbox onCheckedChange={onCheckedChange} checked={checked} />
 
         <Link
           to="/webhooks/$id"

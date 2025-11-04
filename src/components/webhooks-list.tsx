@@ -1,12 +1,13 @@
 import { useSuspenseInfiniteQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { WEBHOOK_LIST_SCHEMA } from '../http/schemas/webhooks'
 import { WebhooksListItem } from './webhooks-list-item'
 
 export function WebhooksList() {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const observerRef = useRef<IntersectionObserver | null>(null)
+  const [_checkedWebhookIds, setCheckedWebhookIds] = useState<string[]>([])
 
   const { data, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useSuspenseInfiniteQuery({
@@ -28,6 +29,14 @@ export function WebhooksList() {
         nextCursor: data.pages[data.pages.length - 1].nextCursor,
       }),
     })
+
+  const _handleCheckWebhook = useCallback((id: string) => {
+    setCheckedWebhookIds((prevSelected) => {
+      return prevSelected.includes(id)
+        ? prevSelected.filter((webhookId) => webhookId !== id)
+        : [...prevSelected, id]
+    })
+  }, [])
 
   useEffect(() => {
     if (loadMoreRef.current) {
@@ -61,7 +70,12 @@ export function WebhooksList() {
     <div className="flex-1 overflow-y-auto">
       <div className="space-y-1 p-2">
         {data.webhooks.map((webhook) => (
-          <WebhooksListItem key={webhook.id} data={webhook} />
+          <WebhooksListItem
+            key={webhook.id}
+            data={webhook}
+            checked={_checkedWebhookIds.includes(webhook.id)}
+            onCheckedChange={() => _handleCheckWebhook(webhook.id)}
+          />
         ))}
       </div>
 
