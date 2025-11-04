@@ -1,14 +1,22 @@
-import { useSuspenseInfiniteQuery } from '@tanstack/react-query'
+import { useMutation, useSuspenseInfiniteQuery } from '@tanstack/react-query'
 import { Loader2, Wand2Icon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import z4 from 'zod/v4'
 import { WEBHOOK_LIST_SCHEMA } from '../http/schemas/webhooks'
 import { WebhooksListItem } from './webhooks-list-item'
+
+const GenerateHandlerResponse = z4.object({
+  code: z4.string(),
+})
 
 export function WebhooksList() {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const [_checkedWebhookIds, setCheckedWebhookIds] = useState<string[]>([])
+  const [_generatedHandlerCode, setGeneratedHandlerCode] = useState<
+    string | null
+  >(null)
   const _hasAnyWebhookChecked = _checkedWebhookIds.length > 0
 
   const { data, hasNextPage, fetchNextPage, isFetchingNextPage } =
@@ -32,6 +40,26 @@ export function WebhooksList() {
       }),
     })
 
+  const { mutate: generatedHandlers } = useMutation({
+    mutationFn: async (webhookIds: string[]) => {
+      const _response = await fetch('http://localhost:3334/api/handlers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ids: webhookIds,
+        }),
+      })
+
+      const _data = await _response.json()
+      return GenerateHandlerResponse.parse(_data)
+    },
+    onSuccess: ({ code }) => {
+      setGeneratedHandlerCode(code)
+    },
+  })
+
   const _handleCheckWebhook = useCallback((id: string) => {
     setCheckedWebhookIds((prevSelected) => {
       return prevSelected.includes(id)
@@ -39,10 +67,6 @@ export function WebhooksList() {
         : [...prevSelected, id]
     })
   }, [])
-
-  const handleGenerateHandlers = useCallback(() => {
-    console.log('Generate handlers for:', _checkedWebhookIds)
-  }, [_checkedWebhookIds])
 
   useEffect(() => {
     if (loadMoreRef.current) {
@@ -85,7 +109,7 @@ export function WebhooksList() {
             'disabled:opacity-40 disabled:hover:bg-indigo-400 disabled:cursor-default',
           )}
           disabled={!_hasAnyWebhookChecked}
-          onClick={handleGenerateHandlers}
+          onClick={() => generatedHandlers(_checkedWebhookIds)}
         >
           <Wand2Icon />
           Generate handlers
