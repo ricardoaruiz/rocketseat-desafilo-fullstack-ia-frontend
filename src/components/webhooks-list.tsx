@@ -1,9 +1,11 @@
+import * as Dialog from '@radix-ui/react-dialog'
 import { useMutation, useSuspenseInfiniteQuery } from '@tanstack/react-query'
 import { Loader2, Wand2Icon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import z4 from 'zod/v4'
 import { WEBHOOK_LIST_SCHEMA } from '../http/schemas/webhooks'
+import { CodeBlock } from './ui/code-block'
 import { WebhooksListItem } from './webhooks-list-item'
 
 const GenerateHandlerResponse = z4.object({
@@ -40,7 +42,7 @@ export function WebhooksList() {
       }),
     })
 
-  const { mutate: generatedHandlers } = useMutation({
+  const { mutate: generatedHandlers, isPending } = useMutation({
     mutationFn: async (webhookIds: string[]) => {
       const _response = await fetch('http://localhost:3334/api/handlers', {
         method: 'POST',
@@ -97,47 +99,81 @@ export function WebhooksList() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   return (
-    <div className="flex-1">
-      {/* Button */}
-      <div className="px-2">
-        <button
-          type="button"
-          className={twMerge(
-            'flex items-center justify-center gap-2 w-full py-3 font-medium text-sm',
-            'bg-indigo-400 text-slate-800 cursor-pointer my-3 rounded-lg',
-            'hover:bg-indigo-500 transition-colors',
-            'disabled:opacity-40 disabled:hover:bg-indigo-400 disabled:cursor-default',
-          )}
-          disabled={!_hasAnyWebhookChecked}
-          onClick={() => generatedHandlers(_checkedWebhookIds)}
-        >
-          <Wand2Icon />
-          Generate handlers
-        </button>
-      </div>
+    <>
+      {/* Overlay while generating handlers */}
+      {isPending && <div className="fixed inset-0 bg-zinc-800/50 z-50"></div>}
 
-      {/* Webhooks List */}
-      <div className="space-y-1 p-2 max-h-[calc(100vh-168px)] overflow-y-auto pb-10">
-        {data.webhooks.map((webhook) => (
-          <WebhooksListItem
-            key={webhook.id}
-            data={webhook}
-            checked={_checkedWebhookIds.includes(webhook.id)}
-            onCheckedChange={() => _handleCheckWebhook(webhook.id)}
-          />
-        ))}
-
-        {/* Load More Indicator */}
-        {hasNextPage && (
-          <div className="p-2" ref={loadMoreRef}>
-            {isFetchingNextPage && (
-              <div className="flex items-center justify-center">
-                <Loader2 className="size-5 animate-spin" />
-              </div>
+      <div className="flex-1">
+        {/* Button */}
+        <div className="px-2">
+          <button
+            type="button"
+            className={twMerge(
+              'flex items-center justify-center gap-2 w-full py-3 font-medium text-sm',
+              'bg-indigo-400 text-slate-800 cursor-pointer my-3 rounded-lg',
+              'hover:bg-indigo-500 transition-colors',
+              'disabled:opacity-40 disabled:hover:bg-indigo-400 disabled:cursor-default',
             )}
-          </div>
-        )}
+            disabled={!_hasAnyWebhookChecked || isPending}
+            onClick={() => generatedHandlers(_checkedWebhookIds)}
+          >
+            {isPending && (
+              <>
+                <Loader2 className="size-5 animate-spin" />{' '}
+                <div>Generating handlers</div>
+              </>
+            )}
+            {!isPending && (
+              <>
+                <Wand2Icon /> <div>Generate handlers</div>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Webhooks List */}
+        <div className="space-y-1 p-2 max-h-[calc(100vh-168px)] overflow-y-auto pb-10">
+          {data.webhooks.map((webhook) => (
+            <WebhooksListItem
+              key={webhook.id}
+              data={webhook}
+              checked={_checkedWebhookIds.includes(webhook.id)}
+              onCheckedChange={() => _handleCheckWebhook(webhook.id)}
+            />
+          ))}
+
+          {/* Load More Indicator */}
+          {hasNextPage && (
+            <div className="p-2" ref={loadMoreRef}>
+              {isFetchingNextPage && (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="size-5 animate-spin" />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Generated Handler Code Dialog */}
+      <Dialog.Root
+        open={!!_generatedHandlerCode}
+        onOpenChange={(open) => {
+          if (!open) {
+            setGeneratedHandlerCode(null)
+          }
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 bg-zinc-600/80" />
+          <Dialog.Content className="fixed bg-zinc-900 left-1/2 top-1/2 max-h-[85vh] overflow-y-auto w-full max-w-[1200px] -translate-x-1/2 -translate-y-1/2 rounded-md bg-gray1 p-[25px]">
+            <CodeBlock
+              language="typescript"
+              code={_generatedHandlerCode ?? ''}
+            />
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
   )
 }
