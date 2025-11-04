@@ -1,6 +1,7 @@
 import { useSuspenseInfiniteQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Wand2Icon } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 import { WEBHOOK_LIST_SCHEMA } from '../http/schemas/webhooks'
 import { WebhooksListItem } from './webhooks-list-item'
 
@@ -8,6 +9,7 @@ export function WebhooksList() {
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const [_checkedWebhookIds, setCheckedWebhookIds] = useState<string[]>([])
+  const _hasAnyWebhookChecked = _checkedWebhookIds.length > 0
 
   const { data, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useSuspenseInfiniteQuery({
@@ -38,6 +40,10 @@ export function WebhooksList() {
     })
   }, [])
 
+  const handleGenerateHandlers = useCallback(() => {
+    console.log('Generate handlers for:', _checkedWebhookIds)
+  }, [_checkedWebhookIds])
+
   useEffect(() => {
     if (loadMoreRef.current) {
       observerRef.current?.disconnect()
@@ -67,8 +73,27 @@ export function WebhooksList() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="space-y-1 p-2">
+    <div className="flex-1">
+      {/* Button */}
+      <div className="px-2">
+        <button
+          type="button"
+          className={twMerge(
+            'flex items-center justify-center gap-2 w-full py-3 font-medium text-sm',
+            'bg-indigo-400 text-slate-800 cursor-pointer my-3 rounded-lg',
+            'hover:bg-indigo-500 transition-colors',
+            'disabled:opacity-40 disabled:hover:bg-indigo-400 disabled:cursor-default',
+          )}
+          disabled={!_hasAnyWebhookChecked}
+          onClick={handleGenerateHandlers}
+        >
+          <Wand2Icon />
+          Generate handlers
+        </button>
+      </div>
+
+      {/* Webhooks List */}
+      <div className="space-y-1 p-2 max-h-[calc(100vh-168px)] overflow-y-auto pb-10">
         {data.webhooks.map((webhook) => (
           <WebhooksListItem
             key={webhook.id}
@@ -77,17 +102,18 @@ export function WebhooksList() {
             onCheckedChange={() => _handleCheckWebhook(webhook.id)}
           />
         ))}
-      </div>
 
-      {hasNextPage && (
-        <div className="p-2" ref={loadMoreRef}>
-          {isFetchingNextPage && (
-            <div className="flex items-center justify-center">
-              <Loader2 className="size-5 animate-spin" />
-            </div>
-          )}
-        </div>
-      )}
+        {/* Load More Indicator */}
+        {hasNextPage && (
+          <div className="p-2" ref={loadMoreRef}>
+            {isFetchingNextPage && (
+              <div className="flex items-center justify-center">
+                <Loader2 className="size-5 animate-spin" />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
